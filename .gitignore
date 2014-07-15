@@ -22,6 +22,13 @@ var/
 .installed.cfg
 *.egg
 
+# control version
+packages/*
+!packages/note
+
+# IDE
+*.idea
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

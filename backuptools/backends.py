@@ -1,8 +1,8 @@
 import mimetypes
 import math
-from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 import os
+
 from bakthat import backends
 from filechunkio import FileChunkIO
 
@@ -11,7 +11,6 @@ __author__ = 'alex'
 
 
 class S3BackendPlus(backends.S3Backend):
-
     def upload(self, keyname, filename, **kwargs):
         source_size = os.stat(filename).st_size
         if source_size != 0:
@@ -47,6 +46,7 @@ class S3BackendPlus(backends.S3Backend):
             else:
                 if debug:
                     print '... Uploaded part #%d' % part_num
+
         _upload()
 
     def multipart_upload(self, keyname, source_path, source_size, **kwargs):

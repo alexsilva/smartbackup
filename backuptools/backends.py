@@ -3,7 +3,8 @@ import math
 from multiprocessing.pool import ThreadPool
 import os
 
-from bakthat import backends
+from bakthat import backends, Backups
+from bakthat.backends import BakthatBackend
 from filechunkio import FileChunkIO
 
 
@@ -11,6 +12,8 @@ __author__ = 'alex'
 
 
 class S3BackendPlus(backends.S3Backend):
+    name = 's3plus'
+
     def upload(self, keyname, filename, **kwargs):
         source_size = os.stat(filename).st_size
         if source_size != 0:
@@ -90,3 +93,41 @@ class S3BackendPlus(backends.S3Backend):
             key.set_acl(acl)
         else:
             multipart_upload.cancel_upload()
+
+
+class LocalStorageBackend(BakthatBackend):
+    """ Backend to handle local storage. """
+    name = "localst"
+
+    def __init__(self, conf={}, profile="default"):
+        BakthatBackend.__init__(self, conf, profile)
+
+        self.container = self.conf["storage_path"]
+        self.container_key = "storage_path"
+
+        if not os.path.exists(self.container):
+            os.makedirs(self.container)
+
+    def download(self, keyname):
+        encrypted_out = open(os.path.join(self.container, keyname), 'rb')
+        return encrypted_out
+
+    def upload(self, keyname, filename, **kwargs):
+        filepath = os.path.join(self.container, keyname)
+
+        with open(filepath, 'wb') as sfile:
+            sfile.write(open(filename, 'rb').read())
+
+    def ls(self):
+        backups = Backups.select().where(Backups.is_deleted == False, Backups.backend == self.name)
+        return [bk.stored_filename for bk in backups.order_by(Backups.last_updated.desc())]
+
+    def delete(self, keyname):
+        filepath = os.path.join(self.container, keyname)
+
+        print 'Removing {0}'.format(filepath)
+
+        if os.path.isfile(filepath):
+            os.remove(filepath)
+        else:
+            raise NotImplemented('Delete dir not supported!')

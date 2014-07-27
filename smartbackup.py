@@ -11,7 +11,6 @@ sys.path.append(os.path.join(BASE_DIR, "packages"))
 import bakthat
 
 
-
 if __name__ == '__main__':
     # run as command line program
     bakthat.main()

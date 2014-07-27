@@ -2,6 +2,9 @@ from bakthat.plugin import Plugin
 import bakthat
 
 import backends
+import models
+
+import bakthat.models
 
 __author__ = 'alex'
 
@@ -14,6 +17,14 @@ class S3BackendPlusPlugin(Plugin):
 
 
 class LocalBackendPlugin(Plugin):
+
     def activate(self):
         self.log.info("Connecting plugin '{0}'".format(backends.LocalStorageBackend.name))
         bakthat.STORAGE_BACKEND[backends.LocalStorageBackend.name] = backends.LocalStorageBackend
+
+
+class BackupsModelPlugin(Plugin):
+
+    def activate(self):
+        self.log.info("Connecting plugin '{0}'".format(self.__class__.__name__))
+        bakthat.Backups = models.Backups

@@ -102,8 +102,8 @@ class LocalStorageBackend(BakthatBackend):
     def __init__(self, conf={}, profile="default"):
         BakthatBackend.__init__(self, conf, profile)
 
-        self.container = self.conf["storage_path"]
-        self.container_key = "storage_path"
+        self.container = self.conf["localst_path"]
+        self.container_key = "localst_path"
 
         if not os.path.exists(self.container):
             os.makedirs(self.container)
@@ -125,9 +125,5 @@ class LocalStorageBackend(BakthatBackend):
     def delete(self, keyname):
         filepath = os.path.join(self.container, keyname)
 
-        print 'Removing {0}'.format(filepath)
-
         if os.path.isfile(filepath):
             os.remove(filepath)
-        else:
-            raise NotImplemented('Delete dir not supported!')

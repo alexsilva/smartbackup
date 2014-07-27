@@ -7,8 +7,7 @@ __author__ = 'alex'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(BASE_DIR, "packages"))
 
-# lib import
-import bakthat
+import bakthat  # lib import
 
 
 if __name__ == '__main__':

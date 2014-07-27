@@ -11,8 +11,22 @@ from exceptions import UploadError
 __author__ = 'alex'
 
 
-class S3BackendPlus(backends.S3Backend):
+class BaseBackend(BakthatBackend):
+
+    def exists(self, store_filename):
+        """
+        Checks if the file already exists on the remote storage.
+        :param store_filename: key of file
+        """
+        raise NotImplemented
+
+
+class S3BackendPlus(backends.S3Backend, BaseBackend):
     name = 's3plus'
+
+    def exists(self, store_filename):
+        """ Checks if the file already exists on the remote storage. """
+        return self.bucket.get_key(store_filename) is not None
 
     def upload(self, keyname, filename, **kwargs):
         source_size = os.stat(filename).st_size
@@ -127,7 +141,7 @@ class S3BackendPlus(backends.S3Backend):
                 raise UploadError('Failed for now! Try Later.')
 
 
-class LocalStorageBackend(BakthatBackend):
+class LocalStorageBackend(BaseBackend):
     """ Backend to handle local storage. """
     name = "localst"
 

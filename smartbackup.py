@@ -15,14 +15,19 @@ from bakthat import _get_store_backend
 
 @app.cmd(help="Synchronizes the local backup with the remote storage system.")
 @app.cmd_arg('-s', '--source', type=str, help="localst", default='localst')
-@app.cmd_arg('-d', '--destination', type=str, help="s3|s3plus|glacier|swift", default=None)
+@app.cmd_arg('-d', '--destination', type=str, help="s3plus", default=None)
 @app.cmd_arg('-c', '--config', type=str, default=CONFIG_FILE, help="path to config file")
 @app.cmd_arg('-p', '--profile', type=str, default="default", help="profile name (default by default)")
 def local_remote_sync(source='localst', destination=None, config=CONFIG_FILE, profile="default", **kwargs):
 
     local_storage_backend, source, conf = _get_store_backend(config, source, profile)
+    remote_storage_backend, destination, _conf = _get_store_backend(config, destination, profile)
 
     for filename, stored_filename in local_storage_backend.ls():
+        if remote_storage_backend.exists(stored_filename):
+            continue
+
+        # local file
         stored_filename_path = os.path.join(local_storage_backend.container,
                                             stored_filename)
 
@@ -35,6 +40,7 @@ def local_remote_sync(source='localst', destination=None, config=CONFIG_FILE, pr
         # clean name
         _stored_filename_path = os.path.join(local_storage_backend.container,
                                              filename + ("." if not ext.startswith('.') else ext))
+
         try:
             os.rename(stored_filename_path, _stored_filename_path)
             try:

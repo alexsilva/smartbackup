@@ -51,47 +51,80 @@ class S3BackendPlus(backends.S3Backend):
 
         _upload()
 
+    def get_multipart_upload_pending(self, keyname):
+        """ pending upload operation """
+        multipart_uploads = self.bucket.get_all_multipart_uploads()
+        return [multipart_upload for multipart_upload in multipart_uploads if
+                multipart_upload.key_name == keyname]
+
+    @staticmethod
+    def get_parts_range(multipart_upload, chunk_amount):
+        amount_range = range(chunk_amount)
+        uploads = [part.part_number-1 for part in multipart_upload.get_all_parts()]
+        return filter(lambda n: n not in uploads, amount_range)
+
     def multipart_upload(self, keyname, source_path, source_size, **kwargs):
-        acl = kwargs.get('acl', 'private')
-        num_cb = kwargs.get('num_cb', 10)
+        acl = kwargs.pop('acl', 'private')
+        num_cb = kwargs.pop('num_cb', 10)
 
-        debug = kwargs.get('debug', True)
-        headers = kwargs.get('headers', {})
+        debug = kwargs.pop('debug', True)
+        headers = kwargs.pop('headers', {})
 
-        parallel_processes = kwargs.get('parallel_processes', 4)
-        reduced_redundancy = kwargs.get('reduced_redundancy', False)
+        parallel_processes = kwargs.pop('parallel_processes', 4)
+        reduced_redundancy = kwargs.pop('reduced_redundancy', False)
 
         if kwargs.get('guess_mimetype', True):
             mtype = mimetypes.guess_type(keyname)[0] or 'application/octet-stream'
             headers.update({'Content-Type': mtype})
 
-        multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers,
-                                                                 reduced_redundancy=reduced_redundancy)
+        multipart_upload_items = self.get_multipart_upload_pending(keyname)
+
         bytes_per_chunk = max(int(math.sqrt(5242880) * math.sqrt(source_size)),
                               5242880)
         chunk_amount = int(math.ceil(source_size / float(bytes_per_chunk)))
 
-        pool = ThreadPool(processes=parallel_processes)
+        # start new upload
+        if not any(multipart_upload_items):
+            multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers,
+                                                                     reduced_redundancy=reduced_redundancy)
+            multipart_upload_items = [multipart_upload]
+        elif debug:
+            print 'recover upload "{0}"'.format(keyname)
 
-        for index in range(chunk_amount):
-            offset = index * bytes_per_chunk
+        # restart upload
+        for multipart_upload in multipart_upload_items:
+            pool = ThreadPool(processes=parallel_processes)
 
-            remaining_bytes = source_size - offset
-            bytes_len = min([bytes_per_chunk, remaining_bytes])
+            for index in self.get_parts_range(multipart_upload, chunk_amount):
+                offset = index * bytes_per_chunk
 
-            part_num = index + 1
-            pool.apply_async(self._upload_part, [multipart_upload.id,
-                                                 part_num, source_path, offset, bytes_len,
-                                                 debug, self.cb, num_cb])
-        pool.close()
-        pool.join()
+                remaining_bytes = source_size - offset
+                bytes_len = min([bytes_per_chunk, remaining_bytes])
 
-        if len(multipart_upload.get_all_parts()) == chunk_amount:
-            multipart_upload.complete_upload()
-            key = self.bucket.get_key(keyname)
-            key.set_acl(acl)
-        else:
-            raise UploadError('Failed for now! Try Later.')
+                part_num = index + 1
+
+                # task args
+                args = (
+                    multipart_upload.id,
+                    part_num,
+                    source_path,
+                    offset,
+                    bytes_len,
+                    debug,
+                    self.cb,
+                    num_cb
+                )
+                pool.apply_async(self._upload_part, args)
+
+            pool.close()
+            pool.join()
+
+            if len(multipart_upload.get_all_parts()) == chunk_amount:
+                multipart_upload.complete_upload()
+                key = self.bucket.get_key(keyname)
+                key.set_acl(acl)
+            else:
+                raise UploadError('Failed for now! Try Later.')
 
 
 class LocalStorageBackend(BakthatBackend):

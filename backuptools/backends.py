@@ -6,7 +6,7 @@ import os
 from bakthat import backends, Backups
 from bakthat.backends import BakthatBackend
 from filechunkio import FileChunkIO
-
+from exceptions import UploadError
 
 __author__ = 'alex'
 
@@ -37,8 +37,7 @@ class S3BackendPlus(backends.S3Backend):
                 for mp in self.bucket.get_all_multipart_uploads():
                     if mp.id == multipart_id:
                         with FileChunkIO(source_path, 'rb', offset=offset, bytes=bytes_len) as fp:
-                            mp.upload_part_from_file(fp=fp, part_num=part_num,
-                                                     cb=cb, num_cb=num_cb)
+                            mp.upload_part_from_file(fp=fp, part_num=part_num, cb=cb, num_cb=num_cb)
                         break
             except Exception, exc:
                 if retries_left:
@@ -92,7 +91,7 @@ class S3BackendPlus(backends.S3Backend):
             key = self.bucket.get_key(keyname)
             key.set_acl(acl)
         else:
-            multipart_upload.cancel_upload()
+            raise UploadError('Failed for now! Try Later.')
 
 
 class LocalStorageBackend(BakthatBackend):

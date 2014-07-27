@@ -9,6 +9,34 @@ __author__ = 'alex'
 class Backups(bakthat.models.Backups):
 
     @classmethod
+    def match_filename(cls, filename, destination, **kwargs):
+        conf = config
+        if kwargs.get("config"):
+            conf = load_config(kwargs.get("config"))
+
+        profile = conf.get(kwargs.get("profile", "default"))
+
+        s3_key = hashlib.sha512(profile.get("access_key") +
+                                profile.get("s3_bucket")).hexdigest()
+
+        localst_key = hashlib.sha512(profile.get("access_key") +
+                                     profile.get("localst_path")).hexdigest()
+
+        glacier_key = hashlib.sha512(profile.get("access_key") +
+                                     profile.get("glacier_vault")).hexdigest()
+
+        try:
+            fquery = "{0}*".format(filename)
+            query = Backups.select().where(Backups.filename % fquery |
+                                           Backups.stored_filename % fquery,
+                                           Backups.backend == destination,
+                                           Backups.backend_hash << [s3_key, localst_key, glacier_key])
+            query = query.order_by(Backups.backup_date.desc())
+            return query.get()
+        except Backups.DoesNotExist:
+            return
+
+    @classmethod
     def search(cls, query="", destination="", **kwargs):
         conf = config
         if kwargs.get("config"):

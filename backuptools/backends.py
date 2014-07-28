@@ -2,6 +2,7 @@ import mimetypes
 import math
 from multiprocessing.pool import ThreadPool
 import os
+import socket
 
 from bakthat import backends, Backups
 from bakthat.backends import BakthatBackend
@@ -29,6 +30,7 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
         return self.bucket.get_key(store_filename) is not None
 
     def upload(self, keyname, filename, **kwargs):
+        keyname = self.conf.get("server_name", socket.gethostname()) + "_" + keyname
         source_size = os.stat(filename).st_size
         if source_size != 0:
             self.multipart_upload(keyname, filename, source_size, **kwargs)

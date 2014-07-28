@@ -12,7 +12,7 @@ import bakthat
 from bakthat import app
 from bakthat import CONFIG_FILE
 from bakthat import _get_store_backend
-from bakthat.helper import BakHelper
+from backuptools.helper import BakHelper
 
 
 @app.cmd(help="Synchronizes the local backup with the remote storage system.")

@@ -7,7 +7,7 @@ import socket
 from bakthat import backends, Backups
 from bakthat.backends import BakthatBackend
 from filechunkio import FileChunkIO
-from exceptions import UploadError
+from errors import UploadError
 
 __author__ = 'alex'
 

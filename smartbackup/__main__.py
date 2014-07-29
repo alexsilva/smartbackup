@@ -1,3 +1,5 @@
+#!/usr/local/bin/python
+
 # What is '__main__' module ?
 # Reference - https://docs.python.org/2/using/cmdline.html#cmdoption-m
 

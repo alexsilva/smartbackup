@@ -1,5 +1,0 @@
-install packages here
-
-# using pip command
-
-pip install -r requirements.txt --pre --target=./packages

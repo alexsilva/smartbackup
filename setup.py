@@ -15,7 +15,7 @@ setup(
     keywords="s3 backup tools",
     url="https://github.com/alexsilva/smartbackup",
     packages=find_packages(exclude=[]),
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
     install_requires=["bakthat", "filechunkio"],
     entry_points={'console_scripts': ["smartbackup = smartbackup:main"]},
     classifiers=[

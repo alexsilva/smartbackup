@@ -14,8 +14,9 @@ class MysqlEngineBackend(Plugin):
 
     def activate(self):
         #self.log.info("Connecting plugin '{0}'".format(backends.S3BackendPlus.name))
-        bakthat.models.database_proxy.initialize(peewee.MySQLDatabase(None))
+        #bakthat.models.database_proxy.initialize(peewee.MySQLDatabase(None))
         # bakthat.models.create_tables()
+        pass
 
 
 class S3BackendPlusPlugin(Plugin):

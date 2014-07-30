@@ -5,7 +5,7 @@ import os
 import socket
 
 from bakthat import backends, Backups
-from bakthat.backends import BakthatBackend
+from bakthat.backends import BakthatBackend, log
 from filechunkio import FileChunkIO
 from errors import UploadError
 
@@ -43,27 +43,28 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
         Uploads a part with retries.
         """
         if debug:
-            print "_upload_part(%s, %s, %s)" % (source_path, offset, bytes_len)
+            log.info("_upload_part(%s, %s, %s)" % (source_path, offset, bytes_len))
 
         def _upload(retries_left=amount_of_retries):
             try:
                 if debug:
-                    print 'Start uploading part #%d ...' % part_num
+                    log.info('Start uploading part #%d ...' % part_num)
 
                 for mp in self.bucket.get_all_multipart_uploads():
                     if mp.id == multipart_id:
                         with FileChunkIO(source_path, 'rb', offset=offset, bytes=bytes_len) as fp:
                             mp.upload_part_from_file(fp=fp, part_num=part_num, cb=cb, num_cb=num_cb)
                         break
-            except Exception, exc:
+            except Exception as exc:
                 if retries_left:
                     _upload(retries_left=retries_left - 1)
                 else:
-                    print 'Failed uploading part #%d' % part_num
+                    log.error('Failed uploading part #%d' % part_num)
+                    log.exception(exc)
                     raise exc
             else:
                 if debug:
-                    print '... Uploaded part #%d' % part_num
+                    log.info('... Uploaded part #%d' % part_num)
 
         _upload()
 
@@ -105,7 +106,7 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
                                                                      reduced_redundancy=reduced_redundancy)
             multipart_upload_items = [multipart_upload]
         elif debug:
-            print 'recover upload "{0}"'.format(keyname)
+            log.info('Recover upload "{0}"'.format(keyname))
 
         # restart upload
         for multipart_upload in multipart_upload_items:

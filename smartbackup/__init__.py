@@ -18,7 +18,7 @@ def mysqldump(user='root', password='', **kwargs):
 
         mysql_kwargs = dict(
             u=user,
-            d=kwargs['database'],
+            B=kwargs['database'],
             _out="dump_{0}.sql".format(kwargs['database']))
 
         if kwargs.get('host') is not None:

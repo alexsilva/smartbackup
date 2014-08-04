@@ -5,6 +5,7 @@ import os
 
 from bakthat import backends, Backups
 from bakthat.backends import BakthatBackend, log
+from boto.utils import compute_md5
 from filechunkio import FileChunkIO
 from errors import UploadError
 from smartbackup.utils import server_name_with
@@ -32,6 +33,14 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
     def gen_keyname(self, keyname, path=None):
         keyname = server_name_with(self.conf, keyname)
         return (path + "/" + keyname) if path else keyname
+
+    @staticmethod
+    def _md5_checksum_metadata(source_path):
+        checksum = {}
+        with open(source_path, "rb") as _file:
+            hex_digest, b64_digest, data_size = compute_md5(_file)
+            checksum['b64_digest'] = b64_digest
+        return checksum
 
     def download(self, keyname, **kwargs):
         keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))
@@ -112,7 +121,8 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
 
         # start new upload
         if not any(multipart_upload_items):
-            multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers,
+            metadata = self._md5_checksum_metadata(source_path)
+            multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers, metadata=metadata,
                                                                      reduced_redundancy=reduced_redundancy)
             multipart_upload_items = [multipart_upload]
         elif debug:

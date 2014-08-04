@@ -29,9 +29,16 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
         """ Checks if the file already exists on the remote storage. """
         return self.bucket.get_key(store_filename) is not None
 
-    def upload(self, keyname, filename, **kwargs):
+    def gen_keyname(self, keyname, path=None):
         keyname = server_name_with(self.conf, keyname)
-        keyname = (kwargs['path'] + "/" + keyname) if 'path' in kwargs else keyname
+        return (path + "/" + keyname) if path else keyname
+
+    def download(self, keyname, **kwargs):
+        keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))
+        return super(S3BackendPlus, keyname)
+
+    def upload(self, keyname, filename, **kwargs):
+        keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))
 
         source_size = os.stat(filename).st_size
 

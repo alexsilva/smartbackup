@@ -35,7 +35,7 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
 
     def download(self, keyname, **kwargs):
         keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))
-        return super(S3BackendPlus, keyname)
+        return super(S3BackendPlus, self).download(keyname)
 
     def upload(self, keyname, filename, **kwargs):
         keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))

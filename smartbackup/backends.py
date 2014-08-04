@@ -30,8 +30,8 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
         return self.bucket.get_key(store_filename) is not None
 
     def upload(self, keyname, filename, **kwargs):
-        keyname = (kwargs['path'] + "/" + keyname) if 'path' in kwargs else keyname
         keyname = server_name_with(self.conf, keyname)
+        keyname = (kwargs['path'] + "/" + keyname) if 'path' in kwargs else keyname
 
         source_size = os.stat(filename).st_size
 

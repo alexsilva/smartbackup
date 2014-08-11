@@ -8,13 +8,12 @@ from bakthat.backends import BakthatBackend, log
 from boto.utils import compute_md5
 from filechunkio import FileChunkIO
 from errors import UploadError
-from smartbackup.utils import server_name_with
+
 
 __author__ = 'alex'
 
 
 class BaseBackend(BakthatBackend):
-
     def exists(self, store_filename):
         """
         Checks if the file already exists on the remote storage.
@@ -30,27 +29,16 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
         """ Checks if the file already exists on the remote storage. """
         return self.bucket.get_key(store_filename) is not None
 
-    def gen_keyname(self, keyname, path=None):
-        keyname = server_name_with(self.conf, keyname)
-        return (path + "/" + keyname) if path else keyname
-
     @staticmethod
     def _md5_checksum_metadata(source_path):
         checksum = {}
-        with open(source_path, "rb") as _file:
-            hex_digest, b64_digest, data_size = compute_md5(_file)
+        with open(source_path, "rb") as fd:
+            hex_digest, b64_digest, data_size = compute_md5(fd)
             checksum['b64_digest'] = b64_digest
         return checksum
 
-    def download(self, keyname, **kwargs):
-        keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))
-        return super(S3BackendPlus, self).download(keyname)
-
     def upload(self, keyname, filename, **kwargs):
-        keyname = self.gen_keyname(keyname, path=kwargs.pop('path', None))
-
         source_size = os.stat(filename).st_size
-
         if source_size != 0:
             self.multipart_upload(keyname, filename, source_size, **kwargs)
         else:
@@ -96,7 +84,7 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
     @staticmethod
     def get_parts_range(multipart_upload, chunk_amount):
         amount_range = range(chunk_amount)
-        uploads = [part.part_number-1 for part in multipart_upload.get_all_parts()]
+        uploads = [part.part_number - 1 for part in multipart_upload.get_all_parts()]
         return filter(lambda n: n not in uploads, amount_range)
 
     def multipart_upload(self, keyname, source_path, source_size, **kwargs):

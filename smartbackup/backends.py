@@ -108,7 +108,8 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
 
         # start new upload
         if not any(multipart_upload_items):
-            metadata = self._md5_checksum_metadata(source_path)
+            metadata = kwargs.pop('metadata', {})
+            metadata.update(self._md5_checksum_metadata(source_path))
             multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers, metadata=metadata,
                                                                      reduced_redundancy=reduced_redundancy)
             multipart_upload_items = [multipart_upload]

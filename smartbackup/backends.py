@@ -7,7 +7,6 @@ from bakthat import backends, Backups
 from bakthat.backends import BakthatBackend, log
 from boto.utils import compute_md5
 from filechunkio import FileChunkIO
-from errors import UploadError
 
 
 __author__ = 'alex'
@@ -148,8 +147,6 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
                 multipart_upload.complete_upload()
                 key = self.bucket.get_key(keyname)
                 key.set_acl(acl)
-            else:
-                raise UploadError('Failed for now! Try Later.')
 
 
 class LocalStorageBackend(BaseBackend):

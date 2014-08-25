@@ -2,6 +2,7 @@ import mimetypes
 import math
 from multiprocessing.pool import ThreadPool
 import os
+import shutil
 
 from bakthat import backends, Backups
 from bakthat.backends import BakthatBackend, log
@@ -168,10 +169,7 @@ class LocalStorageBackend(BaseBackend):
         return encrypted_out
 
     def upload(self, keyname, filename, **kwargs):
-        filepath = os.path.join(self.container, keyname)
-
-        with open(filepath, 'wb') as sfile:
-            sfile.write(open(filename, 'rb').read())
+        shutil.copyfile(filename, os.path.join(self.container, keyname))
 
     def ls(self):
         backups = Backups.select().where(Backups.is_deleted == False, Backups.backend == self.name)

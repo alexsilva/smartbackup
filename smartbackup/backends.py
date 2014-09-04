@@ -173,7 +173,7 @@ class LocalStorageBackend(BaseBackend):
 
     def ls(self):
         backups = Backups.select().where(Backups.is_deleted == False, Backups.backend == self.name)
-        return [(bk.filename, bk.stored_filename) for bk in backups.order_by(Backups.last_updated.desc())]
+        return [backup.stored_filename for backup in backups.order_by(Backups.last_updated.desc())]
 
     def delete(self, keyname):
         filepath = os.path.join(self.container, keyname)

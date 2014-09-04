@@ -89,3 +89,38 @@ class Backups(bakthat.models.Backups):
             wheres.append(tags_query)
 
         return Backups.select().where(*wheres).order_by(Backups.last_updated.desc())
+
+    @classmethod
+    def search_older_than(cls, filename, backup_date, destination="", **kwargs):
+        conf = config
+        if kwargs.get("config"):
+            conf = load_config(kwargs.get("config"))
+
+        if not destination:
+            destination = ["s3", "glacier"]
+
+        if isinstance(destination, (str, unicode)):
+            destination = [destination]
+
+        wheres = []
+
+        if kwargs.get("profile"):
+            profile = conf.get(kwargs.get("profile"))
+
+            s3_key = hashlib.sha512(profile.get("access_key") +
+                                    profile.get("s3_bucket")).hexdigest()
+
+            localst_key = hashlib.sha512(profile.get("access_key") +
+                                         profile.get("localst_path")).hexdigest()
+
+            glacier_key = hashlib.sha512(profile.get("access_key") +
+                                         profile.get("glacier_vault")).hexdigest()
+
+            wheres.append(Backups.backend_hash << [s3_key, localst_key, glacier_key])
+
+        wheres.append(Backups.filename == filename)
+        wheres.append(Backups.backup_date < backup_date)
+        wheres.append(Backups.backend << destination)
+        wheres.append(Backups.is_deleted == False)
+
+        return Backups.select().where(*wheres).order_by(Backups.last_updated.desc())

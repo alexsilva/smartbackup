@@ -47,7 +47,7 @@ class Backups(bakthat.models.Backups):
         if isinstance(destination, (str, unicode)):
             destination = [destination]
 
-        query = "*{0}*".format(query)
+        query = "{0}*".format(query)
         wheres = []
 
         if kwargs.get("profile"):

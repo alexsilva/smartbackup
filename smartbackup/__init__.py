@@ -68,8 +68,10 @@ def delete_older_filename(filename, interval, profile="default", config=CONFIG_F
 @app.cmd_arg('-d', '--destination', type=str, help="s3plus", default='s3plus')
 @app.cmd_arg('-database', '--database', type=str)
 def mysqldump(user='root', password='', **kwargs):
-    with BakHelper(kwargs['backupname'], destination=kwargs['destination'],
-                   password=password, tags=["mysql"]) as bh:
+    with BakHelper(kwargs['backupname'],
+                   destination=kwargs['destination'],
+                   password=password,
+                   tags=["mysql"]) as bh:
 
         mysql_kwargs = dict(
             u=user,

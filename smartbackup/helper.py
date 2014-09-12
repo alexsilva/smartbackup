@@ -16,4 +16,4 @@ class BakHelper(bakthat.helper.BakHelper):
                               profile=kwargs.get("profile", self.profile),
                               conf=kwargs.get("conf", self.conf),
                               key=kwargs.get("key", self.key),
-                              stored_filename_custom=self.backup_name)
+                              custom_filename=self.backup_name)

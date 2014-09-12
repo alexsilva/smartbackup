@@ -67,11 +67,14 @@ def delete_older_filename(filename, interval, profile="default", config=CONFIG_F
 @app.cmd_arg('-host', '--host', type=str, help='Mysql host', default=None)
 @app.cmd_arg('-d', '--destination', type=str, help="s3plus", default='s3plus')
 @app.cmd_arg('-database', '--database', type=str)
+@app.cmd_arg('--single-transaction', action='store_true', default=False, help='Lock mysql table.')
 def mysqldump(user='root', password='', **kwargs):
     with BakHelper(kwargs['backupname'],
                    destination=kwargs['destination'],
                    password=password,
                    tags=["mysql"]) as bh:
+
+        mysql_args = []
 
         mysql_kwargs = dict(
             u=user,
@@ -81,5 +84,8 @@ def mysqldump(user='root', password='', **kwargs):
         if kwargs.get('host') is not None:
             mysql_kwargs['h'] = kwargs['host']
 
-        sh.mysqldump("-p{0}".format(password), **mysql_kwargs)
+        if kwargs.get('single_transaction'):
+            mysql_args.append('--single-transaction')
+
+        sh.mysqldump("-p{0}".format(password), *mysql_args, **mysql_kwargs)
         bh.backup()

@@ -75,18 +75,6 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
 
         _upload()
 
-    def get_multipart_upload_pending(self, keyname):
-        """ pending upload operation """
-        multipart_uploads = self.bucket.get_all_multipart_uploads()
-        return [multipart_upload for multipart_upload in multipart_uploads if
-                multipart_upload.key_name == keyname]
-
-    @staticmethod
-    def get_parts_range(multipart_upload, chunk_amount):
-        amount_range = range(chunk_amount)
-        uploads = [part.part_number - 1 for part in multipart_upload.get_all_parts()]
-        return filter(lambda n: n not in uploads, amount_range)
-
     def multipart_upload(self, keyname, source_path, source_size, **kwargs):
         acl = kwargs.pop('acl', 'private')
         num_cb = kwargs.pop('num_cb', 10)
@@ -101,54 +89,49 @@ class S3BackendPlus(backends.S3Backend, BaseBackend):
             mtype = mimetypes.guess_type(keyname)[0] or 'application/octet-stream'
             headers.update({'Content-Type': mtype})
 
-        multipart_upload_items = self.get_multipart_upload_pending(keyname)
-
         bytes_per_chunk = max(int(math.sqrt(5242880) * math.sqrt(source_size)),
                               5242880)
         chunk_amount = int(math.ceil(source_size / float(bytes_per_chunk)))
 
-        # start new upload
-        if not any(multipart_upload_items):
-            metadata = kwargs.pop('metadata', {})
-            metadata.update(self._md5_checksum_metadata(source_path))
-            multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers, metadata=metadata,
-                                                                     reduced_redundancy=reduced_redundancy)
-            multipart_upload_items = [multipart_upload]
-        elif debug:
-            log.info('Recover upload "{0}"'.format(keyname))
+        metadata = kwargs.pop('metadata', {})
+        metadata.update(self._md5_checksum_metadata(source_path))
+        multipart_upload = self.bucket.initiate_multipart_upload(keyname, headers=headers, metadata=metadata,
+                                                                 reduced_redundancy=reduced_redundancy)
 
-        # restart upload
-        for multipart_upload in multipart_upload_items:
-            pool = ThreadPool(processes=parallel_processes)
+        pool = ThreadPool(processes=parallel_processes)
 
-            for index in self.get_parts_range(multipart_upload, chunk_amount):
-                offset = index * bytes_per_chunk
+        for index in range(chunk_amount):
+            offset = index * bytes_per_chunk
 
-                remaining_bytes = source_size - offset
-                bytes_len = min([bytes_per_chunk, remaining_bytes])
+            remaining_bytes = source_size - offset
+            bytes_len = min([bytes_per_chunk, remaining_bytes])
 
-                part_num = index + 1
+            part_num = index + 1
 
-                # task args
-                args = (
-                    multipart_upload.id,
-                    part_num,
-                    source_path,
-                    offset,
-                    bytes_len,
-                    debug,
-                    self.cb,
-                    num_cb
-                )
-                pool.apply_async(self._upload_part, args)
+            # task args
+            args = (
+                multipart_upload.id,
+                part_num,
+                source_path,
+                offset,
+                bytes_len,
+                debug,
+                self.cb,
+                num_cb
+            )
+            pool.apply_async(self._upload_part, args)
 
-            pool.close()
-            pool.join()
+        pool.close()
+        pool.join()
 
-            if len(multipart_upload.get_all_parts()) == chunk_amount:
-                multipart_upload.complete_upload()
-                key = self.bucket.get_key(keyname)
-                key.set_acl(acl)
+        parts = multipart_upload.get_all_parts()
+
+        if parts is not None and len(parts) == chunk_amount:
+            multipart_upload.complete_upload()
+            key = self.bucket.get_key(keyname)
+            key.set_acl(acl)
+        else:
+            multipart_upload.cancel_upload()
 
 
 class LocalStorageBackend(BaseBackend):
